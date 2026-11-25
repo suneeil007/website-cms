@@ -1,0 +1,23 @@
+src/
+└── admin/
+    └── modules/
+        └── page/
+            ├── api/
+            │   └── pageApi.js
+            ├── hooks/
+            │   ├── usePages.js
+            │   ├── usePage.js
+            │   ├── useCreatePage.js
+            │   ├── useUpdatePage.js
+            │   └── useDeletePage.js
+            ├── components/
+            │   ├── PageTable.jsx
+            │   ├── PageFilters.jsx
+            │   ├── PageForm.jsx
+            │   ├── PageStatusBadge.jsx
+            │   └── PageSeoForm.jsx
+            ├── pages/
+            │   ├── PageListPage.jsx
+            │   ├── PageCreatePage.jsx
+            │   └── PageEditPage.jsx
+            └── pageRoutes.jsx

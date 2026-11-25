@@ -1,0 +1,371 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+}
+
+enum CategoryModule {
+  NEWS
+  PRODUCT
+  SERVICE
+}
+
+enum NewsStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// ==========================================
+// PAGE MODULE
+// ==========================================
+
+model Page {
+  id             Int        @id @default(autoincrement())
+  uuid           String     @unique @default(uuid()) @db.Uuid
+  title          String     @db.VarChar(200)
+  slug           String     @unique @db.VarChar(220)
+  excerpt        String?    @db.Text
+  content        String?    @db.Text
+  status         PageStatus @default(DRAFT)
+  seoTitle       String?    @db.VarChar(200)
+  seoDescription String?    @db.VarChar(320)
+  publishedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  media PageMedia[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("pages")
+}
+
+// ==========================================
+// MEDIA MODULE
+// ==========================================
+
+model Media {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid()) @db.Uuid
+  originalName String   @db.VarChar(255)
+  fileName     String   @unique @db.VarChar(255)
+  mimeType     String   @db.VarChar(150)
+  extension    String   @db.VarChar(20)
+  size         BigInt
+  storageDisk  String   @default("local") @db.VarChar(30)
+  storagePath  String   @unique @db.VarChar(500)
+  altText      String?  @db.VarChar(255)
+  caption      String?  @db.VarChar(500)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pages         PageMedia[]
+  categoryMedia CategoryMedia[]
+  newsMedia     NewsMedia[]
+
+  @@index([mimeType])
+  @@index([createdAt])
+  @@map("media")
+}
+
+// ==========================================
+// PAGE <-> MEDIA RELATIONSHIP
+// ==========================================
+
+model PageMedia {
+  id        Int      @id @default(autoincrement())
+  pageId    Int
+  mediaId   Int
+  sortOrder Int      @default(0)
+  role      String?  @db.VarChar(50)
+  createdAt DateTime @default(now())
+
+  page  Page  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, mediaId])
+  @@index([pageId, sortOrder])
+  @@index([mediaId])
+  @@map("page_media")
+}
+
+// ==========================================
+// CATEGORY MODULE
+// ==========================================
+
+model Category {
+  id          Int            @id @default(autoincrement())
+  uuid        String         @unique @default(uuid()) @db.Uuid
+  name        String         @db.VarChar(150)
+  slug        String         @unique @db.VarChar(180)
+  module      CategoryModule @default(NEWS)
+  description String?        @db.Text
+
+  parentId  Int?
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  seoTitle       String? @db.VarChar(200)
+  seoDescription String? @db.VarChar(320)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryHierarchy")
+
+  media CategoryMedia[]
+  news  News[]
+
+  @@index([parentId])
+  @@index([module, isActive, sortOrder])
+  @@index([createdAt])
+  @@map("categories")
+}
+
+// ==========================================
+// CATEGORY <-> MEDIA RELATIONSHIP
+// ==========================================
+
+model CategoryMedia {
+  id         Int      @id @default(autoincrement())
+  categoryId Int
+  mediaId    Int
+  role       String   @default("thumbnail") @db.VarChar(50)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  media    Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, mediaId])
+  @@index([categoryId, role])
+  @@index([mediaId])
+  @@map("category_media")
+}
+
+// ==========================================
+// NEWS MODULE
+// ==========================================
+
+model News {
+  id      Int        @id @default(autoincrement())
+  uuid    String     @unique @default(uuid()) @db.Uuid
+  title   String     @db.VarChar(200)
+  slug    String     @unique @db.VarChar(220)
+  excerpt String?    @db.Text
+  content String     @db.Text
+  status  NewsStatus @default(DRAFT)
+
+  categoryId Int
+  authorId   Int
+
+  seoTitle       String? @db.VarChar(200)
+  seoDescription String? @db.VarChar(320)
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  media NewsMedia[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId, status])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("news")
+}
+
+// ==========================================
+// NEWS <-> MEDIA RELATIONSHIP
+// ==========================================
+
+model NewsMedia {
+  id        Int      @id @default(autoincrement())
+  newsId    Int
+  mediaId   Int
+  sortOrder Int      @default(0)
+  role      String   @default("gallery") @db.VarChar(50)
+  createdAt DateTime @default(now())
+
+  news  News  @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([newsId, mediaId])
+  @@index([newsId, role, sortOrder])
+  @@index([mediaId])
+  @@map("news_media")
+}
+
+// ==========================================
+// ADMIN USER MODULE
+// ==========================================
+
+model User {
+  id                  Int        @id @default(autoincrement())
+  uuid                String     @unique @default(uuid()) @db.Uuid
+  firstName           String     @db.VarChar(100)
+  lastName            String     @db.VarChar(100)
+  email               String     @unique @db.VarChar(255)
+  passwordHash        String     @db.VarChar(255)
+  status              UserStatus @default(ACTIVE)
+  failedLoginAttempts Int        @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  passwordChangedAt   DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  roles               UserRole[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  authoredNews        News[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+// ==========================================
+// ROLE MANAGEMENT
+// ==========================================
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([createdAt])
+  @@map("roles")
+}
+
+// ==========================================
+// PERMISSION MANAGEMENT
+// ==========================================
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(150)
+  slug        String   @unique @db.VarChar(150)
+  module      String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+// ==========================================
+// USER <-> ROLE RELATIONSHIP
+// ==========================================
+
+model UserRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  roleId    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// ==========================================
+// ROLE <-> PERMISSION RELATIONSHIP
+// ==========================================
+
+model RolePermission {
+  id           Int      @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ==========================================
+// REFRESH TOKEN / ADMIN SESSIONS
+// ==========================================
+
+model RefreshToken {
+  id         Int       @id @default(autoincrement())
+  uuid       String    @unique @default(uuid()) @db.Uuid
+  userId     Int
+  tokenHash  String    @unique @db.VarChar(255)
+  familyId   String    @default(uuid()) @db.Uuid
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  userAgent  String?   @db.VarChar(500)
+  ipAddress  String?   @db.VarChar(45)
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ==========================================
+// PASSWORD RESET TOKENS
+// ==========================================
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  tokenHash String    @unique @db.VarChar(255)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}

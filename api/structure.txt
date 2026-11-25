@@ -1,0 +1,980 @@
+website-cms-api
+
+src
+
+Create these subfolders inside src:
+
+    config
+
+    core
+
+    modules
+
+    routes
+
+    prisma
+
+    scripts
+
+    tests
+
+
+package.json
+
+.gitignore
+
+.env
+
++++++++++++++++++++++++
+  modular architecture +++++++++++++++++++++++
++++++++++++++++++++++++
+
+
+website-cms-api/
+│
+├── src/
+│   ├── config/
+│   │
+│   ├── core/
+│   │
+│   ├── modules/
+│   │   └── Page/
+│   │       ├── index.js
+│   │       ├── page.constants.js
+│   │       ├── page.controller.js
+│   │       ├── page.repository.js
+│   │       ├── page.routes.js
+│   │       ├── page.service.js
+│   │       └── page.validation.js
+│   │
+│   ├── routes/
+│   ├── prisma/
+│   ├── scripts/
+│   └── tests/
+│
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+│
+├── package.json
+├── .gitignore
+├── .env
+└── README.md
+
+
+++++++++++++++++++++++++++++++++
+   Development roadmap ++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
+We'll build in this order:
+Step	Module / Feature	Priority
+1	Core configuration and database	Critical
+2	API response, errors and middleware	Critical
+3	Page CRUD	Critical
+4	Authentication (JWT)	Critical
+5	Users, roles and permissions	Critical
+6	Media management	High
+7	Dynamic page builder / sections	High
+8	Menu management	High
+9	Blog / News	High
+10	Categories and tags	High
+11	SEO management	High
+12	Website settings	High
+13	API documentation and tests	High
+
+____________________________________
+                                    |
+Page Management API v1              |   
+Target functionality                |
+____________________________________|
+
+- Create pages with automatic slug generation.
+- Update pages using UUID.
+- Prevent duplicate slugs.
+- List pages with pagination.
+- Search pages by title.
+- Filter by DRAFT, PUBLISHED and ARCHIVED.
+- Sort by title, creation date and update date.
+- Automatically manage publishing dates.
+- Delete pages.
+- Consistent JSON responses and error handling.
+
+
+
+NEED TO RUN IN AI CHATGPT TO add new media module
+
+Build the complete professional Media Management module for my Website CMS API. Configuration: storage = local, maximum image size = 10 MB, maximum document size = 25 MB, multiple uploads = yes. Use my existing Node.js Express 5, Prisma 6, PostgreSQL and Zod 4 modular architecture. Provide complete files and Windows CMD commands, preserving existing Page CRUD.
+
+
+
+
+
+src/
+├── modules/
+│   ├── Auth/
+│   │   ├── auth.constants.js
+│   │   ├── auth.controller.js
+│   │   ├── auth.repository.js
+│   │   ├── auth.routes.js
+│   │   ├── auth.service.js
+│   │   ├── auth.validation.js
+│   │   └── index.js
+│   │
+│   ├── User/
+│   ├── Page/
+│   └── Media/
+│
+├── core/
+│   ├── database/
+│   ├── middleware/
+│   │   ├── authenticate.js
+│   │   ├── authorize.js
+│   │   └── error-handler.js
+│   └── utils/
+
+2. Features we should implement
+Feature	Description
+Login	Email and password authentication
+Logout	Revoke refresh token/session
+Access token	Secure API authentication
+Refresh token	Renew expired access tokens
+User management	Create, update, deactivate users
+Roles	Super Admin, Admin, Editor, Author
+Permissions	Control access to individual modules
+Password hashing	bcrypt or Argon2
+Password reset	Secure password recovery
+Account security	Login throttling and validation
+
+3. Authentication API endpoints
+Method	Endpoint	Purpose
+POST	/api/v1/auth/login	Login
+POST	/api/v1/auth/logout	Logout
+POST	/api/v1/auth/refresh	Refresh access token
+GET	/api/v1/auth/me	Current user
+POST	/api/v1/auth/forgot-password	Request password reset
+POST	/api/v1/auth/reset-password	Reset password
+
+4. Database design
+We'll extend your existing Prisma schema with:
+- User
+- Role
+- Permission
+- UserRole
+- RolePermission
+- RefreshToken
+- PasswordResetToken
+This gives us role-based access control (RBAC), so, for example, an Editor can manage pages but cannot manage users or system settings.
+5. Protect the existing modules
+Eventually, API access will work like this:
+                    Login
+                      |
+                      v
+                Access Token
+                      |
+                      v
+                 API Request
+                      |
+                      v
+              Authentication Check
+                      |
+                      v
+               Permission Check
+                      |
+             +--------+--------+
+             |                 |
+           Allowed           Denied
+             |                 |
+             v                 v
+         Page / Media       403 Forbidden
+
+
+         We'll use a modular, production-oriented architecture with:
+- Email and password login.
+- Secure password hashing using Argon2.
+- JWT access tokens.
+- Refresh tokens stored securely in the database.
+- Logout and token revocation.
+- Role-based permissions.
+- Admin user management.
+- Protected Page, Media, and future CMS modules.
+- A default Super Admin account created through a seed script.
+1. Authentication architecture
+Admin Login
+
+Email + Password
+
+
+Authentication Service
+
+Password verification and token generation
+
+
+Access Token
+
+Short-lived JWT
+
+
+Refresh Token
+
+Database-backed session
+
+
+
+
+Protected CMS API
+
+Authentication → Permission check → Page / Media / News
+
+
+2. Admin roles
+We'll initially support these roles:
+Role	Access
+Super Admin	Full system access
+Admin	Manage users and CMS content
+Editor	Manage and publish content
+Author	Create and edit own content
+
+Permissions will be configurable rather than hardcoded into individual controllers.
+3. Security decisions
+For this project, I recommend:
+Item	Implementation
+Password hashing	Argon2id
+Access token	JWT, 15 minutes
+Refresh token	Random opaque token, 7 days
+Refresh token storage	Store only its hash in PostgreSQL
+Refresh token rotation	Issue a new token on refresh
+Logout	Revoke the refresh token
+Login protection	Rate limiting
+Registration	Disabled
+Initial admin	Created through a database seed script
+
+The refresh token will use an HttpOnly cookie, while the access token will be returned to the admin frontend.
+4. Implementation order
+We'll build this in stages so we can test each part before moving on.
+1. Install authentication dependencies.
+2. Extend Prisma schema for users, roles, permissions, and refresh tokens.
+3. Run migrations and generate Prisma Client.
+4. Build Auth module (login, logout, refresh, me).
+5. Build authentication and authorization middleware.
+6. Create the initial Super Admin account.
+7. Protect Page and Media routes.
+8. Add admin user and role management.
+5. Step 1 — Install dependencies
+Open CMD in:
+
+D:\node\website-cms-api
+
+Run:
+npm install argon2 jose cookie-parser
+
+
+These packages provide:
+- argon2 — secure password hashing.
+- jose — JWT creation and verification.
+- cookie-parser — reading refresh-token cookies.
+We will also configure environment variables for the JWT secrets rather than hardcoding them.
+6. Next: Prisma database design
+Your existing Page, Media, and PageMedia models must remain intact. We'll add the authentication models to your existing schema rather than replace it.
+
+Please share your current complete prisma/schema.prisma after installing the packages. I'll prepare the complete authentication schema and migration while preserving your existing CMS database structure.
+
+
+
+Our current project is:
+- Project: D:\node\website-cms-api
+- Backend: Node.js 24 + Express
+- Database: PostgreSQL 16
+- ORM: Prisma 6.19.3
+- Architecture: Modular architecture
+- Authentication: Argon2 + JWT + Refresh Tokens
+- Authorization: Role-Based Access Control (RBAC)
+We will build an admin-only authentication system. There will be no public registration.
+Development roadmap
+1. Database authentication models
+   
+   User, Role, Permission, UserRole, RolePermission, RefreshToken and PasswordResetToken.
+2. Current task
+    Admin Login
+   - Validate email and password using Zod.
+   - Find admin account.
+   - Verify Argon2 password.
+   - Generate JWT access token.
+   - Generate and hash refresh token.
+   - Store refresh token in PostgreSQL.
+   - Set HttpOnly cookie.
+   - Return admin information.
+3. Refresh Token API
+   
+   Generate a new access token and rotate refresh tokens.
+4. Logout API
+   
+   Revoke refresh token and clear cookie.
+5. Current Admin API (/me)
+   
+   Retrieve authenticated admin information.
+6. Permission Middleware
+   
+   Protect routes using roles and permissions.
+7. Authentication Testing
+   
+   Test login, invalid credentials, refresh, logout and protected routes.
+Step 1 — Verify your current Prisma schema
+Before writing authentication code, I want to use your actual database models rather than assume their names or relationships.
+
+Open:
+
+D:\node\website-cms-api\prisma\schema.prisma
+
+Send me your complete current schema.prisma file.
+
+Also include the latest npm run dev terminal output if there are any errors.
+What we will build next
+Our first authentication module will follow this structure:
+src/
+└── modules/
+    └── Auth/
+        ├── controllers/
+        │   └── auth.controller.js
+        ├── services/
+        │   └── auth.service.js
+        ├── validators/
+        │   └── auth.validator.js
+        ├── routes/
+        │   └── auth.routes.js
+        └── utils/
+            ├── password.js
+            ├── jwt.js
+            └── refreshToken.js
+
+
+We'll implement and test each file individually, keeping controllers thin, business logic in services, and validation separate.
+
+Let's finish Admin Login first. We won't move to refresh, logout, or permissions until login works correctly.
+
+
+src/
+├── modules/
+│   ├── Auth/
+│   │   ├── auth.constants.js
+│   │   ├── auth.controller.js
+│   │   ├── auth.repository.js
+│   │   ├── auth.routes.js
+│   │   ├── auth.service.js
+│   │   ├── auth.validation.js
+│   │   └── index.js
+│   │
+│   ├── User/
+│   │   ├── user.constants.js
+│   │   ├── user.controller.js
+│   │   ├── user.repository.js
+│   │   ├── user.routes.js
+│   │   ├── user.service.js
+│   │   ├── user.validation.js
+│   │   └── index.js
+│   │
+│   ├── Page/
+│   └── Media/
+│
+├── core/
+│   ├── database/
+│   │   └── prisma.js
+│   │
+│   ├── middleware/
+│   │   ├── authenticate.js
+│   │   ├── authorize.js
+│   │   └── error-handler.js
+│   │
+│   └── utils/
+│       ├── api-response.js
+│       ├── app-error.js
+│       ├── async-handler.js
+│       ├── jwt.js
+│       └── token.js
+│
+├── config/
+├── routes/
+└── server.js
+
+
+
+2. Responsibilities of Auth files
+File	Responsibility
+auth.constants.js	Token expiry, cookie names, authentication constants
+auth.controller.js	Handle HTTP requests and responses
+auth.repository.js	Database operations using Prisma
+auth.routes.js	Define login, refresh, logout and me routes
+auth.service.js	Authentication business logic
+auth.validation.js	Zod request validation
+index.js	Export module routes
+
+3. Authentication API endpoints
+We'll implement these endpoints:
+Method	Endpoint	Purpose
+POST	/api/v1/auth/login	Admin login
+POST	/api/v1/auth/refresh	Refresh access token
+POST	/api/v1/auth/logout	Logout admin
+GET	/api/v1/auth/me	Get authenticated admin
+
+4. Implementation order
+We will follow this exact sequence:
+1. auth.constants.js
+2. auth.validation.js
+3. auth.repository.js
+4. auth.service.js
+5. auth.controller.js
+6. auth.routes.js
+7. index.js
+8. Connect authentication routes to the existing module loader.
+9. Test login using Postman.
+Important: We will reuse your existing core/database/prisma.js, error handler and response utilities rather than creating duplicate implementations.
+
+
+Good. Your project already has all the required authentication dependencies installed. We don't need to install anything else.
+
+I reviewed your configuration and identified two important decisions before implementing the login service.
+1. Dependency decision
+You currently have both jose and jsonwebtoken.
+
+I recommend using jose for JWT generation and verification. It supports modern ES modules and provides a clean asynchronous API.
+
+We'll use:
+- argon2 for password verification.
+- jose for JWT.
+- Node.js crypto for secure refresh-token generation and SHA-256 hashing.
+- Prisma for database operations.
+We won't introduce another JWT library.
+2. Server configuration
+Your server.js already handles:
+- Express server startup.
+- Media storage initialization.
+- Prisma connection lifecycle.
+- Graceful shutdown.
+That's good. We should preserve this implementation.
+
+Your error handler also already handles Zod and Prisma errors. We'll integrate with it rather than creating another error-handling system.
+3. One more check before implementing the service
+Please send these two files:
+1. src/app.js
+2. src/config/env.js
+I need to verify:
+- Whether cookie-parser is already registered.
+- How CORS credentials are configured.
+- How environment variables are validated.
+- Whether your API uses a centralized router.
+- Your actual JWT secret and expiry configuration names (not the secret values).
+4. What we'll implement next
+Our next files will be:
+src/modules/Auth/
+├── auth.service.js
+├── auth.controller.js
+├── auth.routes.js
+└── index.js
+
+src/core/utils/
+├── jwt.js
+└── token.js
+
+
+We'll also ensure:
+- Inactive accounts cannot log in.
+- Locked accounts are rejected until their lock expires.
+- Expired temporary locks are handled correctly.
+- Five failed attempts trigger a 15-minute lock.
+- Refresh tokens are stored only as SHA-256 hashes.
+- Access tokens expire after 15 minutes.
+- Refresh tokens expire after 7 days.
+- Login responses never expose password hashes.
+Send app.js and env.js, and we'll proceed with the complete login implementation.
+
+
+
+Let's design the Category module properly before writing code. This is an important module in your Website CMS because categories will connect content from several other modules.
+
+Your project already has:
+- Node.js + Express
+- Prisma 6 + PostgreSQL
+- Modular architecture
+- Authentication and permission middleware
+- Media Library with reusable uploaded files
+- Page module with working CRUD operations
+We should build Category as a reusable, hierarchical content-classification system, not just a table with name and slug.
+1. What is the Category module?
+A Category module organizes content into meaningful groups.
+
+For example, suppose your CMS manages a company website:
+Website content categories
+Technology
+
+ Software Development
+
+Laravel Development
+
+Web Applications
+
+API Development
+
+ Digital Marketing
+
+SEO
+
+Social Media
+
+
+
+These categories can organize:
+- News articles
+- Blog posts
+- Products
+- Services
+- Other categorized content
+Important: A Category does not own the content. It classifies content belonging to another module.
+2. How Category connects with other modules
+This is the most important architectural decision.
+
+I recommend a many-to-many relationship for most content types.
+
+Why? Because one article can belong to multiple categories, and one category can contain multiple articles.
+
+For example:
+- News article: "New AI Technology Released"
+- Categories: Technology, Artificial Intelligence
+- Both categories can contain many other articles.
+Overall module relationship
+CMS module relationships
+Category module
+
+Central classification system
+
+News module
+
+NewsCategory
+
+
+Product module
+
+ProductCategory
+
+
+Page module
+
+Optional PageCategory
+
+
+Service module
+
+ServiceCategory
+
+
+
+Each content module owns its relationship table.
+
+Media module
+
+CategoryMedia → Category images and icons
+
+
+3. Recommended database relationships
+I recommend separate pivot (junction) tables for each content module.
+Table	Relationship	Purpose
+categories	Main table	Stores categories
+category_media	Category ↔ Media	Category thumbnail/icon
+news_categories	News ↔ Category	Classifies news
+product_categories	Product ↔ Category	Classifies products
+page_categories	Page ↔ Category	Optional page classification
+service_categories	Service ↔ Category	Classifies services
+
+Why separate tables?
+
+Because PostgreSQL can enforce actual foreign keys and referential integrity. This is safer than a generic polymorphic relationship such as model_type and model_id.
+Example: News and Category
+categories
+
+id · uuid · name · slug
+
+1 · abc-123 · Technology · technology
+
+2 · def-456 · Business · business
+
+Many-to-many relationship
+
+news_categories
+newsId	categoryId
+10	1
+10	2
+11	1
+
+
+
+news
+
+id · uuid · title · content · status
+
+
+This means:
+- News ID 10 belongs to Technology and Business.
+- News ID 11 belongs to Technology.
+- Technology can contain many news articles.
+The same principle applies to Products and Services.
+4. Category hierarchy (Parent and Child)
+Your Category module should support unlimited nesting.
+
+For example:
+
+
+
+
+
+
+
+
+medusajs.com
+
+
+A category can have:
+- parentId = null for a root category.
+- parentId = another category ID for a child category.
+Conceptually, the Prisma relationship looks like this:
+model Category {
+    id       Int     @id @default(autoincrement())
+    uuid     String  @unique @default(uuid())
+    name     String
+    slug     String  @unique
+
+    parentId Int?
+
+    parent Category? @relation(
+        "CategoryHierarchy",
+        fields: [parentId],
+        references: [id],
+        onDelete: Restrict
+    )
+
+    children Category[] @relation("CategoryHierarchy")
+}
+
+
+This is only the hierarchy portion of the schema; we'll add the remaining fields and relations when implementing it.
+
+Example:
+Technology
+    ├── Software
+    │     ├── Laravel
+    │     └── React
+    └── Hardware
+          ├── Computers
+          └── Networking
+
+
+A child category cannot be its own parent, and we should prevent circular relationships such as A → B → C → A in the service layer.
+5. How Category connects with Media
+You already have a working Media Library.
+
+We should reuse uploaded files instead of uploading duplicate images for every category.
+
+For example:
+
+
+
+
+
+
+
+
+
+
+Technology
+
+Category thumbnail
+
+Media UUID: edd57f91-96b3-452f-a388-78b9bd2e4f1e
+
+
+The relationship will be:
+Category
+   |
+   | categoryId
+   v
+CategoryMedia
+   |
+   | mediaId
+   v
+Media
+
+
+We can support:
+- Category thumbnail
+- Category banner
+- Category icon
+- Image ordering if multiple images are needed
+This follows the existing PageMedia relationship pattern, with a separate CategoryMedia junction table. 
+6. What should the Category table contain?
+My recommended fields:
+Field	Purpose
+id	Primary key
+uuid	Public identifier
+name	Category name
+slug	SEO-friendly URL
+description	Category description
+parentId	Parent category
+type	NEWS, PRODUCT, PAGE, SERVICE
+status	ACTIVE / INACTIVE
+sortOrder	Display ordering
+seoTitle	SEO title
+seoDescription	SEO description
+createdAt	Creation timestamp
+updatedAt	Last update
+
+I recommend a category type or scope so that News forms only show News categories, Product forms only show Product categories, and so on.
+
+For database uniqueness, I'd use a composite constraint on (type, slug) rather than globally unique slugs, allowing a News category and Product category to share a slug when appropriate.
+7. How other modules will use Category
+Let's look at the actual application workflow.
+
+Example: Creating a News article
+1. Admin opens News → Create News.
+2. News form loads available categories from Category API.
+3. Admin selects Technology and Business.
+4. News API receives selected category UUIDs.
+5. News service validates that those categories exist, are active, and have the correct type.
+6. News repository saves the article and its news_categories relationships.
+7. News detail API returns the article with its categories.
+Example request:
+{
+    "title": "New Technology Trends",
+    "content": "Technology is evolving...",
+    "categories": [
+        "category-uuid-1",
+        "category-uuid-2"
+    ]
+}
+
+
+The Category module provides the category data; the News module manages the assignment.
+
+This separation is important: News should not depend on Category's internal repository or database implementation. It should use a clear service boundary or shared application interface.
+8. Recommended Category module structure
+Following your existing Page module architecture:
+src/
+├── modules/
+│   ├── auth/
+│   ├── media/
+│   ├── page/
+│   │
+│   ├── category/
+│   │   ├── category.routes.js
+│   │   ├── category.controller.js
+│   │   ├── category.service.js
+│   │   ├── category.repository.js
+│   │   ├── category.validation.js
+│   │   ├── category.constants.js
+│   │   └── migrations/
+│   │
+│   ├── news/
+│   ├── product/
+│   └── service/
+│
+└── core/
+    ├── database/
+    └── middleware/
+
+
+9. Category API endpoints
+I recommend these endpoints:
+Method	Endpoint	Purpose
+GET	/api/v1/category	List categories
+GET	/api/v1/category/tree	Hierarchical category tree
+GET	/api/v1/category/:uuid	Category details
+POST	/api/v1/category	Create category
+PUT	/api/v1/category/:uuid	Update category
+DELETE	/api/v1/category/:uuid	Delete category
+GET	/api/v1/category/:uuid/children	Get child categories
+GET	/api/v1/category/:uuid/ancestors	Get parent hierarchy
+
+Additional filters:
+GET /api/v1/category?type=NEWS
+GET /api/v1/category?status=ACTIVE
+GET /api/v1/category?search=Technology
+GET /api/v1/category?parent_uuid=UUID
+GET /api/v1/category?type=PRODUCT&status=ACTIVE
+
+
+10. Important business rules
+Before implementing, I recommend these rules:
+1. Category names must be required.
+2. Slugs must be unique within their category type.
+3. Parent categories must belong to the same type.
+4. Inactive categories cannot be assigned to new content.
+5. Categories with existing content assignments cannot be deleted without handling those assignments.
+6. Categories with children cannot be deleted until their children are reassigned or deleted.
+7. Prevent circular parent-child relationships.
+8. Media attachments must reference existing Media records.
+9. Deleting a category must never delete its Media files.
+10. Category ordering should be configurable.
+
+11. Let's finalize the Category design before coding
+I recommend the following architecture:
+Recommended architecture
+- Hierarchical categories
+- Separate category types for News, Product, Page and Service
+- Many-to-many content relationships
+- Reusable Media Library integration
+- SEO support
+- Active/inactive status
+- UUID-based endpoints
+- Prisma repository/service/controller separation
+I need one important decision before creating your Prisma schema.
+
+Should categories be separated by module, or should the same category be reusable across all modules?
+1. Category sharing strategy
+
+A. Separate categories by module (recommended)
+
+News has its own categories, Products have their own categories, etc.
+
+
+B. Shared categories
+
+One category can be reused across News, Products, Pages and Services.
+
+
+
+2. Should Pages support categories?
+
+Yes, support optional Page categories.
+
+No, Pages do not need categories.
+
+Confirm Category architecture
+Once we decide this, we'll build the Category module step by step: Prisma schema → migration → repository → service → validation → controller → routes → Postman testing.
+
+
+______________________________
+
+ALL THREE IN ONE APP 
+______________________________
+
+website-cms/
+│
+├── apps/
+│   │
+│   ├── api/                         # Node.js + Express + Prisma
+│   │   ├── prisma/
+│   │   ├── src/
+│   │   │   ├── modules/
+│   │   │   │   ├── Auth/
+│   │   │   │   ├── User/
+│   │   │   │   ├── Page/
+│   │   │   │   ├── News/
+│   │   │   │   ├── Category/
+│   │   │   │   └── Media/
+│   │   │   ├── core/
+│   │   │   ├── config/
+│   │   │   ├── routes/
+│   │   │   └── server.js
+│   │   └── package.json
+│   │
+│   ├── admin/                       # React Admin Dashboard
+│   │   ├── public/
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   ├── components/
+│   │   │   ├── layouts/
+│   │   │   ├── modules/
+│   │   │   │   ├── auth/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── users/
+│   │   │   │   ├── pages/
+│   │   │   │   ├── news/
+│   │   │   │   ├── categories/
+│   │   │   │   ├── media/
+│   │   │   │   └── roles/
+│   │   │   ├── services/
+│   │   │   ├── stores/
+│   │   │   └── main.jsx
+│   │   └── package.json
+│   │
+│   └── frontend/                    # Public Website
+│       ├── public/
+│       ├── src/
+│       │   ├── app/
+│       │   ├── components/
+│       │   ├── layouts/
+│       │   ├── modules/
+│       │   │   ├── home/
+│       │   │   ├── pages/
+│       │   │   ├── news/
+│       │   │   ├── categories/
+│       │   │   └── search/
+│       │   ├── services/
+│       │   └── main.jsx
+│       └── package.json
+│
+├── packages/                        # Optional shared code
+│   └── shared/
+│
+├── package.json
+└── README.md
+
+
+
+
+website-cms/
+│
+├── apps/
+│   │
+│   ├── api/                         # Node.js + Express + Prisma
+│   │   ├── prisma/
+│   │   ├── src/
+│   │   │   ├── modules/
+│   │   │   │   ├── Auth/
+│   │   │   │   ├── User/
+│   │   │   │   ├── Page/
+│   │   │   │   ├── News/
+│   │   │   │   ├── Category/
+│   │   │   │   └── Media/
+│   │   │   ├── core/
+│   │   │   ├── config/
+│   │   │   ├── routes/
+│   │   │   └── server.js
+│   │   └── package.json
+│   │
+│   ├── admin/                       # React Admin Dashboard
+│   │   ├── public/
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   ├── components/
+│   │   │   ├── layouts/
+│   │   │   ├── modules/
+│   │   │   │   ├── auth/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── users/
+│   │   │   │   ├── pages/
+│   │   │   │   ├── news/
+│   │   │   │   ├── categories/
+│   │   │   │   ├── media/
+│   │   │   │   └── roles/
+│   │   │   ├── services/
+│   │   │   ├── stores/
+│   │   │   └── main.jsx
+│   │   └── package.json
+│   │
+│   └── frontend/                    # Public Website
+│       ├── public/
+│       ├── src/
+│       │   ├── app/
+│       │   ├── components/
+│       │   ├── layouts/
+│       │   ├── modules/
+│       │   │   ├── home/
+│       │   │   ├── pages/
+│       │   │   ├── news/
+│       │   │   ├── categories/
+│       │   │   └── search/
+│       │   ├── services/
+│       │   └── main.jsx
+│       └── package.json
+│
+├── packages/                        # Optional shared code
+│   └── shared/
+│
+├── package.json
+└── README.md

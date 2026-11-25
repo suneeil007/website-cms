@@ -1,0 +1,24 @@
+src/
+├── app/
+│   ├── App.jsx
+│   └── providers.jsx
+│
+├── services/
+│   ├── axios.js
+│   └── token.js
+│
+├── stores/
+│   └── authStore.js
+│
+└── admin/
+    └── modules/
+        └── auth/
+            ├── api/
+            │   └── authApi.js
+            ├── components/
+            │   ├── AuthGuard.jsx
+            │   └── GuestGuard.jsx
+            ├── hooks/
+            │   └── useAuth.js
+            └── pages/
+                └── LoginPage.jsx

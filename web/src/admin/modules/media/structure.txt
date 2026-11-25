@@ -1,0 +1,17 @@
+src/modules/admin/media/
+│
+├── api/
+│   └── mediaApi.js
+│
+├── hooks/
+│   └── useMedia.js
+│
+├── components/
+│   ├── MediaUpload.jsx
+│   ├── MediaGrid.jsx
+│   ├── MediaCard.jsx
+│   ├── MediaDetails.jsx
+│   └── MediaPicker.jsx
+│
+└── pages/
+    └── MediaLibraryPage.jsx
